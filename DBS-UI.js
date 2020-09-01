@@ -93,13 +93,13 @@ const $ = window.jQuery;
                 let priceBg = `<div id="priceBg" class="bar barBg" style="width:${bgWidth}"></div>`;
                 let priceBar = '<div id="priceBar" class="bar barHolder">' + priceValue + priceAddition + priceBg +'</div>'
 
-                let newExpense = parseFloat(addition + value).toFixed(2);
+                let newExpense = parseFloat(addition) + parseFloat(value);
                 let color = NORMAL_COLOR;
                 if (newExpense > max) {
                     color = WARNING_COLOR;
                 }
 
-                let priceTitle = `<div id="priceTitle" class="barTitle">Potential expenditure:</div><div id="priceAmt" class="barAmt" style="color:${color}">` + newExpense + '/' + max + '</div>'
+                let priceTitle = `<div id="priceTitle" class="barTitle">Potential expenditure:</div><div id="priceAmt" class="barAmt" style="color:${color}">` + newExpense.toFixed(2) + '/' + max + '</div>'
 
                 let priceContent = priceTitle + priceBar;
                 return priceContent;
