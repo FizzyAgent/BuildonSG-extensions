@@ -19,11 +19,17 @@ const $ = window.jQuery;
     $(document).ready(() => {
         if (window.self === window.top) {
 
+            const WARNING_COLOR = '#ff0000';
+            const NORMAL_COLOR = '#000000'
+
             const createPopup = () => {
                 let popup = document.createElement('div');
 
                 let expenditureTitle = "<div id='expenditureTitle' class='barTitle'>This month's epxenditures:</div><div id='expenditureAmt' class='barAmt'>0/0</div>"
-                let expenditureBar = '<div><progress id="expenditureBar" value="0" max="100" /></div>'
+                
+                let expenditureValue = '<div id="expenditureValue" class="bar barValue"></div>';
+                let expenditureBg = '<div id="expenditureBg" class="bar barBg"></div>';
+                let expenditureBar = '<div id="expenditureBar" class="bar barHolder">' + expenditureValue + expenditureBg +'</div>'
 
                 let welcomeText = '<div id="welcomeText">Welcome Jane Pearson</div>';
                 let contentBox = '<div id="contentBox">' + expenditureTitle + expenditureBar + '</div>';
@@ -36,42 +42,64 @@ const $ = window.jQuery;
             }
 
             const updateExpenditureBar = (value, max) => {
+
+                if (value > max) {
+                    document.getElementById('expenditureAmt').style.color = WARNING_COLOR;
+                }
+
                 document.getElementById('expenditureAmt').innerHTML = `${value}/${max}`;
-                document.getElementById('expenditureBar').value = value;
-                document.getElementById('expenditureBar').max = max;
+                let valueWidth = 100 * Math.min(value, max) / max + "%";
+                let bgWidth = 100 * (max - Math.min(value, max)) / max + "%";
+                document.getElementById('expenditureValue').style.width = valueWidth;
+                document.getElementById('expenditureBg').style.width = bgWidth;
             }
 
-            const findPrice = () => {
+            const findPrice = (value, max) => {
                 let contentBox = document.getElementById('contentBox');
                 let elements = document.querySelectorAll('[id^="price"]');
 
                 let totalPrice = 0;
+                let added = [];
+
                 for (let elem of elements) {
-                    let price = elem.textContent.replace(/[^\d.]/g, '');
+                    let price = elem.textContent.replace(/[^\d.]/g, '').replace(/[.]$/g, '');
                     console.log(price);
 
-                    if (price.length > 0) {
+                    if (price.length > 0 && !added.includes(price)) {
                         let count = (price.match(/\d[.]\d/g) || []).length;
                         console.log(count);
                         if (count < 2) {
+                            added.push(price);
                             totalPrice += parseFloat(price);
-                            console.log("Total price: " + totalPrice.toFixed(2));
                         }
                     }
                 }
 
+                console.log("Total price: " + totalPrice.toFixed(2))
+
                 if (totalPrice > 0) {
-                    contentBox.innerHTML += '<br/>' + generatePriceBar(totalPrice);
+                    contentBox.innerHTML += '<br/>' + generatePriceBar(value, max, totalPrice.toFixed(2));
                 }
             }
 
-            const generatePriceBar = (addition) => {
+            const generatePriceBar = (value, max, addition) => {
 
-                let value = document.getElementById('expenditureBar').value;
-                let max = document.getElementById('expenditureBar').max;
+                let valueWidth = 100 * Math.min(value, max) / max + "%";
+                let additonWidth = 100 * + Math.min(addition, max - Math.min(value, max)) / max + "%"
+                let bgWidth = 100 * + Math.max(max - value - addition, 0) / max + "%"
 
-                let priceTitle = '<div id="priceTitle" class="barTitle">Potential expenditure:</div><div id="priceAmt" class="barAmt">' + (addition + value) + '/' + max + '</div>'
-                let priceBar = '<div><progress id="priceBar" value="' + (addition + value) + '" max="' + max + '" /></div>'
+                let priceValue = `<div id="priceValue" class="bar barValue" style="width:${valueWidth}"></div>`;
+                let priceAddition = `<div id="priceAddition" class="bar barAddition" style="width:${additonWidth}; left:${valueWidth}"></div>`;
+                let priceBg = `<div id="priceBg" class="bar barBg" style="width:${bgWidth}"></div>`;
+                let priceBar = '<div id="priceBar" class="bar barHolder">' + priceValue + priceAddition + priceBg +'</div>'
+
+                let newExpense = parseFloat(addition + value).toFixed(2);
+                let color = NORMAL_COLOR;
+                if (newExpense > max) {
+                    color = WARNING_COLOR;
+                }
+
+                let priceTitle = `<div id="priceTitle" class="barTitle">Potential expenditure:</div><div id="priceAmt" class="barAmt" style="color:${color}">` + newExpense + '/' + max + '</div>'
 
                 let priceContent = priceTitle + priceBar;
                 return priceContent;
@@ -86,8 +114,11 @@ const $ = window.jQuery;
             zNode.setAttribute('id', 'btnContainer');
             document.body.appendChild(zNode);
             createPopup();
-            updateExpenditureBar(500,1000);
-            findPrice();
+
+            let current = 700, limit = 1000;
+
+            updateExpenditureBar(current, limit);
+            findPrice(current, limit);
 
             $('#iconBtn').on('click', () => $("#popup").toggle());
 
@@ -120,7 +151,7 @@ const $ = window.jQuery;
                     z-index:                9999;
                     border:                 1px outset black;
                     background:             #f7f7f7;
-                    padding:                1em;
+                    padding:                2em;
                     align-items:            center;
                     border-radius:          10px;
                     width:                  16em;
@@ -144,21 +175,27 @@ const $ = window.jQuery;
                     font-family:            'Karla';
                     font-size:              12px;
                     text-align:             center;
+                    align-items:            center;
                 }
-                progress {
-                    border-radius:          4px;
-                    width:                  80%;
+                .bar {
                     height:                 8px;
-                    box-shadow:             1px 1px 1px rgba( 0, 0, 0, 0.1 );
+                    position:               absolute;
                 }
-                progress::-webkit-progress-bar {
+                .barHolder {
+                    width:                  80%;
+                    left:                   10%;
+                    box-shadow:             1px 1px 1px rgba( 0, 0, 0, 0.2 );
+                }
+                .barBg {
                     background-color:       #cfcfcf;
-                    border-radius:          7px;
+                    right:                  0%;
                 }
-                progress::-webkit-progress-value {
+                .barAddition {
+                    background-color:       #ff2f2f;
+                }
+                .barValue {
                     background-color:       #ff8f8f;
-                    border-radius:          7px;
-                    box-shadow:             1px 1px 1px 1px rgba( 0, 0, 0, 0.2 );
+                    left:                   0%
                 }
                 #welcomeText {
                     text-align:             center;
